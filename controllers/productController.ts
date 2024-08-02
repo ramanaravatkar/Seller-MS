@@ -1,103 +1,127 @@
 import { Request, Response } from 'express';
-import { Product } from '../models/Product';
-import { Sale } from '../models/sale';
+import Product from '../models/Product';
 
-export const createProduct = async (req: Request, res: Response) => {
-  try {
-    const { name, description, price, stock, sellerId } = req.body;
-    const product = new Product({
-      name,
-      description,
-      price,
-      stock,
-      sellerId,
-    });
-    await product.save();
-    res.status(201).json(product);
-  } catch (error) {
-    res.status(500).json({ message: error });
-  }
+// CRUD Operations
+
+export const addProduct = async (req: Request, res: Response) => {
+    try {
+        const product = new Product(req.body);
+        await product.save();
+        res.status(201).json({ message: 'Product added successfully', product });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
 };
 
-export const getAllProducts = async (req: Request, res: Response) => {
-  try {
-    const products = await Product.find();
-    res.status(200).json(products);
-  } catch (error) {
-    res.status(500).json({ message: error});
-  }
+export const getProducts = async (req: Request, res: Response) => {
+    try {
+        const products = await Product.find();
+        res.status(200).json(products);
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
 };
 
 export const getProductById = async (req: Request, res: Response) => {
-  try {
-    const product = await Product.findById(req.params.id);
-    if (!product) return res.status(404).json({ message: 'Product not found' });
-    res.status(200).json(product);
-  } catch (error) {
-    res.status(500).json({ message: error });
-  }
+    try {
+        const { id } = req.params;
+        const product = await Product.findById(id);
+        if (!product) {
+            return res.status(404).json({ message: 'Product not found' });
+        }
+        res.status(200).json(product);
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
 };
 
 export const updateProduct = async (req: Request, res: Response) => {
-  try {
-    const { name, description, price, stock } = req.body;
-    const product = await Product.findByIdAndUpdate(req.params.id, {
-      name,
-      description,
-      price,
-      stock,
-    }, { new: true });
-    if (!product) return res.status(404).json({ message: 'Product not found' });
-    res.status(200).json(product);
-  } catch (error) {
-    res.status(500).json({ message: error });
-  }
+    try {
+        const { id } = req.params;
+        const product = await Product.findByIdAndUpdate(id, req.body, { new: true });
+        if (!product) {
+            return res.status(404).json({ message: 'Product not found' });
+        }
+        res.status(200).json({ message: 'Product updated successfully', product });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
 };
 
 export const deleteProduct = async (req: Request, res: Response) => {
-  try {
-    const product = await Product.findByIdAndDelete(req.params.id);
-    if (!product) return res.status(404).json({ message: 'Product not found' });
-    res.status(200).json({ message: 'Product deleted successfully' });
-  } catch (error) {
-    res.status(500).json({ message: error});
-  }
-};
-
-export const recordSale = async (req: Request, res: Response) => {
-  try {
-    const { productId, quantity } = req.body;
-    const product = await Product.findById(productId);
-    if (!product) return res.status(404).json({ message: 'Product not found' });
-
-    if (product.stock < quantity) {
-      return res.status(400).json({ message: 'Not enough stock available' });
+    try {
+        const { id } = req.params;
+        const product = await Product.findByIdAndDelete(id);
+        if (!product) {
+            return res.status(404).json({ message: 'Product not found' });
+        }
+        res.status(200).json({ message: 'Product deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
     }
-
-    const totalAmount = product.price * quantity;
-    product.stock -= quantity;
-    product.sold += quantity;
-    await product.save();
-
-    const sale = new Sale({
-      productId: product._id,
-      sellerId: product.sellerId,
-      quantity,
-      totalAmount,
-    });
-    await sale.save();
-
-    res.status(201).json({ message: 'Sale recorded successfully', sale });
-  } catch (error) {
-    res.status(500).json({ message: error });
-  }
 };
+
+// Add Discount to Product
+
+export const addDiscount = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { type, amount, startDate, endDate } = req.body;
+
+        const product = await Product.findById(id);
+        if (!product) {
+            return res.status(404).json({ message: 'Product not found' });
+        }
+
+        product.discount = { type, amount, startDate, endDate };
+        await product.save();
+
+        res.status(200).json({ message: 'Discount added successfully', product });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+};
+
+// Get Analytics for a Product
+
+export const getAnalytics = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+
+        const product = await Product.findById(id);
+        if (!product) {
+            return res.status(404).json({ message: 'Product not found' });
+        }
+
+        const analytics = {
+            views: product.views,
+            purchases: product.purchases,
+            revenue: product.purchases * product.price,
+        };
+
+        res.status(200).json({ message: 'Product analytics retrieved successfully', analytics });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+};
+
+// Sales Report
 
 export const getSalesReport = async (req: Request, res: Response) => {
-  try {
-    const sales = await Sale.find({ sellerId: req.body.sellerId }).populate('productId');
-    res.status(200).json(sales);
-  } catch (error) {
-    res.status(500).json({ message: error});
-  }
+    try {
+        const products = await Product.find({ sellerId: req.params.sellerId });
+        if (!products.length) {
+            return res.status(404).json({ message: 'No products found for this seller' });
+        }
+
+        const report = products.map(product => ({
+            name: product.name,
+            purchases: product.purchases,
+            revenue: product.purchases * product.price,
+        }));
+
+        res.status(200).json({ message: 'Sales report generated successfully', report });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
 };
