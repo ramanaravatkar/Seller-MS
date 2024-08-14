@@ -1,26 +1,13 @@
 import express from 'express';
-import {
-    addProduct,
-    getProducts,
-    getProductById,
-    updateProduct,
-    deleteProduct,
-    addDiscount,
-    getAnalytics,
-    getSalesReport
-} from '../controllers/productController';
+import { createProduct, getProducts, getProduct, updateProduct, deleteProduct } from '../controllers/productController';
+import { authenticate } from '../middleware/authMiddleware';
 
 const router = express.Router();
 
-router.post('/products', addProduct);
-router.get('/products', getProducts);
-router.get('/products/:id', getProductById);
-router.put('/products/:id', updateProduct);
-router.delete('/products/:id', deleteProduct);
-
-// New functionalities
-router.put('/products/:id/discount', addDiscount);
-router.get('/products/:id/analytics', getAnalytics);
-router.get('/sales-report/:sellerId', getSalesReport);
+router.post('/', authenticate, createProduct);
+router.get('/', authenticate, getProducts);
+router.get('/:id', authenticate, getProduct);
+router.put('/:id', authenticate, updateProduct);
+router.delete('/:id', authenticate, deleteProduct);
 
 export default router;

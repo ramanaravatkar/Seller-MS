@@ -1,32 +1,17 @@
-import { Schema, model, Document } from 'mongoose';
+import mongoose, { Document, Schema } from 'mongoose';
 
-export interface ISale extends Document {
-  productId: Schema.Types.ObjectId;
-  sellerId: Schema.Types.ObjectId;
+interface ISale extends Document {
+  productId: string;
   quantity: number;
-  totalAmount: number;
+  totalPrice: number;
+  saleDate: Date;
 }
 
-const SaleSchema = new Schema<ISale>({
-  productId: {
-    type: Schema.Types.ObjectId,
-    ref: 'Product',
-    required: true,
-  },
-  sellerId: {
-    type: Schema.Types.ObjectId,
-    ref: 'User',
-    required: true,
-  },
-  quantity: {
-    type: Number,
-    required: true,
-  },
-  totalAmount: {
-    type: Number,
-    required: true,
-  },
-}, { timestamps: true });
+const SaleSchema: Schema = new Schema({
+  productId: { type: String, required: true },
+  quantity: { type: Number, required: true },
+  totalPrice: { type: Number, required: true },
+  saleDate: { type: Date, default: Date.now },
+});
 
-export const Sale = model<ISale>('Sale', SaleSchema);
-
+export default mongoose.model<ISale>('Sale', SaleSchema);

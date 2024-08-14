@@ -1,24 +1,29 @@
 import express from 'express';
 import mongoose from 'mongoose';
-import bodyParser from 'body-parser';
+import authRoutes from './routes/authRoutes';
 import productRoutes from './routes/productRoutes';
-import bundleProductRoutes from './routes/bundleProductRoutes';
+import reportRoutes from './routes/reportRoutes';
+import analyticsRoutes from './routes/analycticsRoutes';
+import discountRoutes from './routes/discountRoutes';
+import bundleRoutes from './routes/bundleRoutes';
 
 const app = express();
-const PORT = process.env.PORT || 5001;
+app.use(express.json());
 
-app.use(bodyParser.json());
+// MongoDB connection
+mongoose.connect('mongodb://localhost:27017/seller-ms', {
+  // useNewUrlParser: true,
+  // useUnifiedTopology: true,
+});
 
 // Routes
-app.use('/api', productRoutes);
-app.use('/api', bundleProductRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/reports', reportRoutes);
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/discounts', discountRoutes);
+app.use('/api/bundles', bundleRoutes);
 
-mongoose.connect('mongodb://localhost:27017/sellerms',
-     { 
-        // useNewUrlParser: true,
-        //  useUnifiedTopology: true
-         })
-    .then(() => {
-        app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-    })
-    .catch(err => console.error('Could not connect to MongoDB', err));
+app.listen(3000, () => {
+  console.log('Server is running on port 3000');
+});
